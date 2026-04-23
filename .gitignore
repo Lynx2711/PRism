@@ -1,0 +1,25 @@
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+__pycache__/
+*.pyc
+
+# Environment
+.env
+env/
+venv/
+ENV/
+
+# Sensitive
+*.pem
+*.key
+secrets.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+check_output.txt

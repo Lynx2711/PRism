@@ -1,0 +1,141 @@
+docker run -d -p 6379:6379 redis //this is what we usedin terminal for jobboard
+```
+
+That works. But you typed that command from memory, and if someone else cloned your project they'd have no idea what command to run. The `docker-compose.yml` file is just a way to **write that command down** in a file so anyone can run `docker compose up` and get the exact same containers, with the exact same ports, every time.
+
+Think of it like this:
+
+`docker run -d -p 6379:6379 redis` = cooking from memory
+
+`docker-compose.yml` = a written recipe anyone can follow
+For CodeSense we need both Redis AND Postgres running. Without compose, you'd need to remember two separate `docker run` commands. With compose, one file describes both, and `docker compose up -d` starts them both together. That's the entire value.
+
+
+
+ GitHub is a server sitting in some data center. When you open a PR, GitHub wants to send an HTTP POST to your Django app. But your Django app is on localhost — GitHub has no idea your laptop exists. It can't reach it.
+
+ ngrok bridges the ga[ between github and localhost. when github hits a public url,ngrok forwards the request through that connection to django running on your machine
+ ]
+
+ GitHub sends a pull_request event for every action — opened, closed, labeled, assigned, review requested, etc. You only want to analyze when new code arrives, which is opened (brand new PR) and synchronize (new commits pushed to existing PR). Everything else gets acknowledged and ignored.
+
+__str__ Python calls __str__ whenever something needs a human-readable string representation of your object
+ without it, when you open Django admin or do PullRequestEvent.objects.all() in the shell, Django has no idea how to display your object as text. So it shows something useless like:
+<PullRequestEvent object (1)>
+<PullRequestEvent object (2)>
+With __str__ defined:
+PR #1 — myorg/myrepo [pending]
+PR #2 — myorg/myrepo [complete]
+
+in webhooks/models.py
+When GitHub sends you a PR webhook, the payload contains everything about that PR. Two fields matter a lot for CodeSense specifically:
+head_sha is the commit hash of the latest commit on that PR branch — something like a3f8c2d.... It's 40 characters, uniquely identifying exactly which version of the code you're reviewing. You need this later when you post review comments back to GitHub via PyGithub, because GitHub's API says "post this comment on commit a3f8c2d" not "post this comment on PR #5."
+diff_url is a URL like https://github.com/user/repo/pull/5.diff — hitting this URL gives you the actual code changes in the PR as a diff format. In Week 3, your Celery worker will fetch this URL, parse the diff, and feed chunks of it to CodeBERT for analysis. Without this URL you have no code to analyze.
+
+
+in codesense, Celery task needs to reach out to an external api to fetch data it doesnt have yet. when that externalcall fails, network tmieout, github ate limit and temporary outage is caused. 
+
+self in Celery tasks vs __self__
+They're related but different contexts.
+__self__ is Python's internal reference that exists on bound methods automatically. You never write it yourself.
+self in a Celery task with bind=True is Celery explicitly passing the task instance to you as the first argument — just like how Django class-based views pass self to get() and post(). You're saying "give me a handle to this task object so I can call methods on it."
+Without bind=True:
+@shared_task
+def analyze_pull_request(event_id):
+    # no self — you're just a plain function
+    # can't do self.retry(), can't check self.request.retries
+With bind=True:
+@shared_task(bind=True)
+def analyze_pull_request(self, event_id):
+    # self is the task instance
+    # self.retry() — retry this task
+    # self.request.retries — how many times have we tried
+    # self.max_retries — the limit you set
+
+
+
+
+A GitHub App has three levels of identity:
+```
+Level 1 — The App itself
+"I am CodeSense, registered with GitHub, App ID 123456"
+Proved by: your private key (.pem file)
+
+Level 2 — The Installation
+"CodeSense is installed on Lynx2711's account"
+Proved by: installation ID (GitHub gives you this)
+
+Level 3 — The actual API calls
+"CodeSense, installed on Lynx2711, wants to read repo X"
+Proved by: a short-lived token generated from Level 1 + Level 2
+Why three levels? Because the same GitHub App can be installed by thousands of different users. When you post a review comment, GitHub needs to know not just "which app" but "which installation of that app on which account." The token you use for API calls is scoped to one specific installation — so CodeSense installed on Company A cannot accidentally access Company B's repos.
+Now the code makes sense:
+pythonauth = Auth.AppAuth(
+    app_id=int(settings.GITHUB_APP_ID),
+    private_key=open(settings.GITHUB_APP_PRIVATE_KEY_PATH).read()
+)
+This is Level 1 — proving you are the CodeSense app using your private key. AppAuth creates a JWT token signed with your .pem file. GitHub trusts this because only you have that private key.
+pythongi = Github(auth=auth)
+owner = event.repo_full_name.split('/')[0]
+installation = gi.get_app().get_installation(owner)
+This is finding Level 2. repo_full_name is something like Lynx2711/test-repo. Splitting on / and taking [0] gives you Lynx2711 — the account owner. You ask GitHub "which installation of my app exists on Lynx2711's account?" GitHub returns an installation object with an ID.
+install_auth = Auth.AppInstallationAuth(auth, installation.id)
+install_client = Github(auth=install_auth)
+This is Level 3 — creating a client scoped to that specific installation. install_client can only access repos that Lynx2711 has given CodeSense permission to access. This is the client you use for all actual API work.
+pythonrepo = install_client.get_repo(event.repo_full_name)
+pull_request = repo.get_pull(event.pr_number)
+files = list(pull_request.get_files())
+Now you're actually doing the work — fetching the repo, getting the specific PR, listing all changed files. get_files() returns file objects with the diff included.
+
+
+
+scanner.py returns something like Security issue found: hardcoded_password in test.py at line 2: Hardcoded password detected
+[CRITICAL] test.py line 2
+  Hardcoded password detected
+  Code: if password = "admin123":
+
+
+codebert: right now CodeBERT does one concrete job — it produces an embedding for each code chunk. An embedding is a list of numbers (a vector) that represents the "meaning" of that code in mathematical space.
+
+
+Every time CodeSense reviews a PR, it learns things about that specific repository:
+What functions exist in this codebase
+How large functions typically are in this repo  
+What naming conventions this team uses
+Which files change together frequently
+What patterns this team has accepted before
+What patterns this team has rejected before
+
+data isolation 
+Team (= a company using CodeSense)
+    └── Repository (connected by that team)
+            └── PullRequestEvent (belongs to that repo)
+                    └── Review findings
+
+custom managers: A manager is the thing that sits between your model and the database. objects is actually a manager. You can override it:
+# instead of remembering to filter everywhere:
+jobs = Job.objects.filter(company=request.user.company)
+
+# you make the default queryset already scoped:
+jobs = Job.objects.for_team(team)
+# impossible to accidentally get another team's data
+
+
+api endpoints 
+POST /api/teams/register/         → create a team account
+POST /api/teams/login/            → get JWT token
+POST /api/repos/connect/          → connect a GitHub repo to your team
+GET  /api/repos/                  → list your team's repos
+GET  /api/repos/{id}/reviews/     → see reviews for a specific repo
+PATCH /api/repos/{id}/config/     → update repo configuration rules
+
+The problem with stateless code review
+Every tool that exists today — GitHub Copilot suggestions, basic linters, even most AI review tools — reviews each PR in complete isolation. They have no memory.
+This means they can't answer questions like:
+
+"This function is 80 lines — is that unusual for this codebase or normal?"
+"This pattern was flagged 3 times last month and always fixed — flag it with higher confidence"
+"These two files always change together — if one changed without the other, something might be wrong"
+"This developer consistently writes functions without docstrings — personalize the feedback"
+
+CodeSense answers all of these because it builds a graph of the repository over time. Every PR that gets reviewed adds to the graph. The longer it's used, the smarter the reviews get.
