@@ -39,7 +39,7 @@ def analyze_pull_request(self, event_id):
         install_client = gi.get_github_for_installation(installation.id)
         repo = install_client.get_repo(event.repo_full_name)
         pull_request = repo.get_pull(event.pr_number)
-        # --- Fetch diff ---
+        # --- Fetch diff (same as before) ---
         files = list(pull_request.get_files())
         diff_content = []
         for file in files:
@@ -50,36 +50,68 @@ def analyze_pull_request(self, event_id):
                 'deletions': file.deletions,
                 'patch': file.patch or '',
             })
-        
-        logger.info(
-            f"Fetched diff for PR #{event.pr_number} — "
-            f"{len(files)} files changed"
-        )
-        # --- Stage 1: Security scanner (fast, runs first) ---
+
+        logger.info(f"Fetched diff for PR #{event.pr_number} — {len(files)} files changed")
+
+        # --- Load knowledge graph for this repo ---
+        repo_config = event.repository_config
+        if repo_config:
+            from reviews.knowledge_graph import RepositoryKnowledgeGraph
+            kg = RepositoryKnowledgeGraph.from_dict(
+                dict(repo_config.knowledge_graph_data)
+            )
+        else:
+            from reviews.knowledge_graph import RepositoryKnowledgeGraph
+            kg = RepositoryKnowledgeGraph()
+
+        # --- Stage 1: Security scanner ---
         scanner_findings = scan_diff(diff_content)
         logger.info(f"Scanner found {len(scanner_findings)} issues")
-        # --- Stage 2: CodeBERT analysis (slower, runs after) ---
+
+        # --- Stage 2: Graph insights ---
+        changed_files = [f['filename'] for f in diff_content]
+        missing_files = kg.get_missing_coupled_files(changed_files)
+        if missing_files:
+            for m in missing_files:
+                logger.info(f"Graph insight: {m['message']}")
+
+        # --- Stage 3: CodeBERT ---
         codebert_findings = analyzer.analyze_diff(diff_content)
         logger.info(f"CodeBERT analysis complete — {len(codebert_findings)} files scored")
 
-        # --- Stage 3: Post review comments to GitHub ---
-        _post_review_comments(pull_request, scanner_findings, codebert_findings, event)
+        # --- Stage 4: Post review comments ---
+        _post_review_comments(
+            pull_request, scanner_findings,
+            codebert_findings, missing_files, event
+        )
+
+        # --- Stage 5: Update knowledge graph ---
+        kg.update_from_pr(event, diff_content, scanner_findings)
+
         # --- Save everything ---
         event.raw_payload['diff_content'] = diff_content
         event.raw_payload['scanner_findings'] = scanner_findings
         event.raw_payload['codebert_findings'] = codebert_findings
+        event.raw_payload['graph_insights'] = missing_files
         event.status = 'complete'
         event.save(update_fields=['raw_payload', 'status'])
 
-        # logger.info(
-        #     f"Successfully processed PR #{event.pr_number} — "
-        #     f"{len(files)} files changed"
-        # )
+        # Save updated graph back to repo config
+        if repo_config:
+            repo_config.knowledge_graph_data = kg.to_dict()
+            repo_config.save(update_fields=['knowledge_graph_data'])
 
-        return{
+        # --- Send WebSocket notification (after save so DB is consistent) ---
+        if event.repository_config:
+            _send_websocket_notification(event, scanner_findings, codebert_findings)
+        else:
+            logger.warning(f"No repository_config for event {event.id} — skipping WebSocket notification")
+
+        return {
             'event_id': event_id,
             'files_changed': len(files),
             'scanner_issues': len(scanner_findings),
+            'graph_insights': len(missing_files),
             'status': 'complete'
         }
 
@@ -97,7 +129,7 @@ def analyze_pull_request(self, event_id):
             event.save(update_fields=['status'])
         raise self.retry(exc=e)
 
-def _post_review_comments(pull_request, scanner_findings, codebert_findings, event):
+def _post_review_comments(pull_request, scanner_findings, codebert_findings, missing_files, event):
     """
     Post structured review comments back to the PR on GitHub.
     This is what makes CodeSense visible to the developer —
@@ -122,11 +154,20 @@ def _post_review_comments(pull_request, scanner_findings, codebert_findings, eve
 
         comments.append({
             'path': finding['filename'],
-            'position': finding['line'],  # position in diff, not file line number
+            'position': finding['line'],
             'body': body,
         })
 
-    # Add a summary comment from CodeBERT at PR level
+    # Post graph insights as PR-level comment
+    # These are repo-level observations, not line-level
+    if missing_files:
+        insight_lines = ["**CodeSense Graph Insights**\n"]
+        insight_lines.append("*Based on historical patterns in this repository:*\n")
+        for m in missing_files:
+            insight_lines.append(f"- {m['message']}")
+        pull_request.create_issue_comment('\n'.join(insight_lines))
+        logger.info(f"Posted {len(missing_files)} graph insights to PR #{event.pr_number}")
+
     if codebert_findings:
         high_risk = [f for f in codebert_findings if f['severity'] in ('high', 'medium')]
         if high_risk:
@@ -136,13 +177,11 @@ def _post_review_comments(pull_request, scanner_findings, codebert_findings, eve
                     f"- `{f['filename']}` — risk score {f['risk_score']} ({f['severity']})"
                 )
             pull_request.create_issue_comment('\n'.join(summary_lines))
-            logger.info("Posted CodeBERT summary comment to PR")
 
-    # Post inline comments from scanner
     if comments:
         try:
             commits = list(pull_request.get_commits())
-            review = pull_request.create_review(
+            pull_request.create_review(
                 commit=commits[-1],
                 body="**CodeSense Security Review**\n\nAutomated security scan complete.",
                 event="COMMENT",
@@ -151,7 +190,6 @@ def _post_review_comments(pull_request, scanner_findings, codebert_findings, eve
             logger.info(f"Posted review with {len(comments)} inline comments to PR #{event.pr_number}")
         except GithubException as e:
             logger.error(f"Failed to post review comments: {e}")
-            # Fall back to PR-level comment instead
             _post_as_pr_comment(pull_request, scanner_findings, event)
 
 
@@ -174,3 +212,46 @@ def _post_as_pr_comment(pull_request, scanner_findings, event):
 
     pull_request.create_issue_comment('\n'.join(lines))
     logger.info(f"Posted fallback PR comment for PR #{event.pr_number}")
+
+
+def _send_websocket_notification(event, scanner_findings, codebert_findings):
+    """
+    Send real-time notification to connected dashboard browsers.
+    Uses async_to_sync because Celery tasks are synchronous
+    but the channel layer is async.
+    """
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        logger.warning("No channel layer configured — skipping WebSocket notification")
+        return
+
+    group_name = f'repo_{event.repository_config_id}_reviews'
+
+    codebert_risk = None
+    if codebert_findings:
+        scores = [f['risk_score'] for f in codebert_findings]
+        codebert_risk = max(scores) if scores else None
+
+    message = {
+        'type': 'review_complete',  # maps to review_complete() in consumer
+        'event_id': event.id,
+        'pr_number': event.pr_number,
+        'pr_title': event.pr_title,
+        'status': 'complete',
+        'scanner_issues': {
+            'total': len(scanner_findings),
+            'critical': len([f for f in scanner_findings if f['severity'] == 'critical']),
+            'high': len([f for f in scanner_findings if f['severity'] == 'high']),
+        },
+        'codebert_risk': codebert_risk,
+    }
+
+    try:
+        async_to_sync(channel_layer.group_send)(group_name, message)
+        logger.info(f"WebSocket notification sent for PR #{event.pr_number}")
+    except Exception as e:
+        logger.error(f"Failed to send WebSocket notification: {e}")
+        # Don't re-raise — WebSocket failure shouldn't fail the whole task

@@ -1,3 +1,12 @@
+steps inorder to run this project:
+first activate the virtual environments
+source env/Scripts/activate
+python manage.py runserver
+celery -A config worker --loglevel=info --pool=solo
+
+ngrok http 8000
+
+
 docker run -d -p 6379:6379 redis //this is what we usedin terminal for jobboard
 ```
 

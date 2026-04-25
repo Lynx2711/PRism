@@ -199,6 +199,8 @@ class RepositoryKnowledgeGraph:
         Files that have changed together with this file
         more than `threshold` times — strong coupling signal.
         """
+        if not self.graph.has_node(filename):
+            return []
         coupled = []
         for neighbor in self.graph.neighbors(filename):
             edge = self.graph[filename][neighbor]
@@ -214,6 +216,8 @@ class RepositoryKnowledgeGraph:
         Security patterns that have appeared in this file before.
         If a pattern keeps recurring, flag with higher confidence.
         """
+        if not self.graph.has_node(filename):
+            return []
         patterns = []
         for neighbor in self.graph.neighbors(filename):
             if neighbor.startswith('pattern:'):
@@ -239,6 +243,8 @@ class RepositoryKnowledgeGraph:
         changed_set = set(changed_files)
 
         for filename in changed_files:
+            if not self.graph.has_node(filename):
+                continue
             coupled = self._get_coupled_files(filename, threshold=3)
             for coupled_file in coupled:
                 if coupled_file['filename'] not in changed_set:

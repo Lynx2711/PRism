@@ -201,3 +201,22 @@ class RepoConfigView(APIView):
         repo.save(update_fields=['config'])
 
         return Response(RepositoryConfigSerializer(repo).data)
+
+
+class RepoAnalyticsView(APIView):
+    """Aggregated analytics for a repository."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, repo_id):
+        team = RepositoryView._get_user_team(self, request)
+        if not team:
+            return Response(
+                {'error': 'You are not a member of any team'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        repo = get_object_or_404(RepositoryConfig, id=repo_id, team=team)
+
+        from reviews.analytics import get_repo_analytics
+        analytics = get_repo_analytics(repo)
+        return Response(analytics)
