@@ -1,0 +1,64 @@
+/* Analytics Page */
+.analytics-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 12px; margin-bottom: 24px; }
+
+.analytics-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.analytics-chart-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 24px;
+}
+
+.chart-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
+  margin-bottom: 20px;
+}
+.chart-title svg { color: var(--text-secondary); }
+
+.chart-empty { padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+.chart-tooltip {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 10px 14px;
+  box-shadow: var(--shadow-md);
+}
+.chart-tooltip-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+.chart-tooltip-value { font-size: 13px; font-weight: 600; }
+
+.analytics-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.analytics-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 24px;
+}
+
+/* Patterns */
+.patterns-list { display: flex; flex-direction: column; gap: 0; }
+.pattern-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.pattern-item:last-child { border-bottom: none; }
+.pattern-info { display: flex; align-items: center; gap: 8px; }
+.pattern-name { font-size: 13px; font-weight: 500; }
+.pattern-count { font-size: 14px; font-weight: 700; color: var(--text-secondary); }
+
+/* Author Table */
+.author-table { display: flex; flex-direction: column; }
+.author-table-header {
+  display: grid; grid-template-columns: 2fr 1fr 1fr;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.author-row {
+  display: grid; grid-template-columns: 2fr 1fr 1fr;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.author-row:last-child { border-bottom: none; }
+.author-name { font-weight: 500; }
+.author-prs { color: var(--text-secondary); }
+.author-issues { color: var(--amber); font-weight: 600; }
+
+@media (max-width: 900px) {
+  .analytics-charts, .analytics-bottom { grid-template-columns: 1fr; }
+}

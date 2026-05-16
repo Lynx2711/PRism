@@ -1,0 +1,118 @@
+.repo-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  transition: all var(--transition-base);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.repo-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.repo-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.repo-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.repo-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.repo-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.repo-card-team {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: block;
+}
+
+.repo-card-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+
+.repo-card-status.active {
+  color: var(--green);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.repo-card-status.inactive {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.repo-card-status.active .status-dot {
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.repo-card-status.inactive .status-dot {
+  background: var(--text-muted);
+}
+
+.repo-card-meta {
+  display: flex;
+  gap: 16px;
+}
+
+.repo-card-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.repo-card-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.repo-card-btn {
+  padding: 8px 14px;
+  font-size: 12px;
+}

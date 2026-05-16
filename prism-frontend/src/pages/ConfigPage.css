@@ -1,0 +1,27 @@
+/* Config Page */
+.config-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 32px; max-width: 680px;
+}
+.config-section { display: flex; flex-direction: column; gap: 4px; }
+.config-section-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 600; margin-bottom: 16px;
+  padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.config-section-title svg { color: var(--text-secondary); }
+
+.config-field {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; gap: 20px;
+}
+.config-field-info { flex: 1; }
+.config-label { font-size: 14px; font-weight: 500; color: var(--text-primary); display: block; }
+.config-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.config-number-input { width: 90px; text-align: center; }
+
+.config-actions {
+  display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+  padding-top: 24px; margin-top: 16px; border-top: 1px solid var(--border);
+}
+.config-saved-msg { font-size: 13px; color: var(--green); font-weight: 500; animation: fadeIn 0.3s ease; }

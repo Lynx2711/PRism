@@ -4,22 +4,39 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+migrations/__pycache__/
 
 # Environment
 .env
+.env.local
+.env.production
 env/
 venv/
 ENV/
+.venv/
 
 # Sensitive
 *.pem
 *.key
 secrets.json
 
+# Node (root-level only — frontend has its own .gitignore)
+/node_modules/
+/package.json
+/package-lock.json
+
 # OS
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
 
 # Project specific
 check_output.txt
+learnings.txt

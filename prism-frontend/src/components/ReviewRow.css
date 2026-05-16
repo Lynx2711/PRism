@@ -1,0 +1,57 @@
+.review-row {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+.review-row:hover { border-color: var(--border-hover); }
+.review-row.expanded { border-color: rgba(124,58,237,0.2); }
+.review-row-main {
+  display: grid;
+  grid-template-columns: 2fr 100px 140px 120px 110px 40px;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  gap: 12px;
+}
+.review-pr { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.review-pr-number { font-size: 13px; font-weight: 700; color: var(--purple-light); white-space: nowrap; }
+.review-pr-info { display: flex; flex-direction: column; min-width: 0; }
+.review-pr-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.review-pr-author { font-size: 12px; color: var(--text-muted); }
+.review-issues { display: flex; align-items: center; gap: 8px; }
+.issue-count { display: flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; }
+.issue-count.critical { color: var(--red); }
+.issue-count.high { color: var(--amber); }
+.issue-total { font-size: 11px; color: var(--text-secondary); }
+.issue-none { font-size: 12px; color: var(--text-muted); }
+.review-risk { display: flex; align-items: center; gap: 6px; }
+.risk-score { font-size: 14px; font-weight: 700; }
+.risk-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.risk-high { color: var(--red); }
+.risk-medium { color: var(--amber); }
+.risk-low { color: var(--green); }
+.review-date { font-size: 12px; color: var(--text-secondary); }
+.review-expand-col { color: var(--text-muted); display: flex; justify-content: center; }
+.review-row-details {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--border);
+  animation: fadeUp 0.2s ease;
+}
+.review-details-header { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); padding: 16px 0 12px; }
+.review-findings-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+.finding-stat { background: rgba(255,255,255,0.03); border-radius: var(--radius-md); padding: 14px; text-align: center; }
+.finding-stat-value { font-size: 24px; font-weight: 700; display: block; }
+.finding-stat-value.critical { color: var(--red); }
+.finding-stat-value.high { color: var(--amber); }
+.finding-stat-value.medium { color: var(--purple-light); }
+.finding-stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; display: block; }
+.review-codebert-detail { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); }
+.detail-label { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+.risk-bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.risk-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.risk-bar-fill.risk-high { background: var(--red); }
+.risk-bar-fill.risk-medium { background: var(--amber); }
+.risk-bar-fill.risk-low { background: var(--green); }
+.risk-value { font-size: 14px; font-weight: 700; white-space: nowrap; }

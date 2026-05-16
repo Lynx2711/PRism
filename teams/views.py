@@ -29,6 +29,24 @@ class RegisterView(APIView):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+
+            # Auto-create a personal team so the user can use
+            # the dashboard immediately without needing a separate
+            # "create team" step. Slug is derived from username.
+            from django.utils.text import slugify
+            team_name = f"{user.username}'s Team"
+            team_slug = slugify(f"{user.username}-team")
+            team = Team.objects.create(
+                name=team_name,
+                slug=team_slug,
+                owner=user,
+            )
+            TeamMembership.objects.create(
+                team=team,
+                user=user,
+                role='admin',
+            )
+
             # issue tokens immediately on registration
             # user doesn't need to log in separately
             refresh = RefreshToken.for_user(user)
