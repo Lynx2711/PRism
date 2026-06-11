@@ -34,3 +34,6 @@ python-dotenv>=1.0,<2.0
 
 # HTTP
 requests>=2.31,<3.0
+
+# PDF Reports
+WeasyPrint>=62.0,<63.0

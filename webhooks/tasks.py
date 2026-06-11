@@ -26,9 +26,20 @@ def analyze_pull_request(self, event_id):
     event.save(update_fields=['status'])
 
     try:
+        # Support both direct key content (production) and file path (local dev)
+        import os
+        private_key = os.getenv('GITHUB_APP_PRIVATE_KEY')
+        if private_key:
+            # Env vars from .env files store newlines as literal '\n' —
+            # convert them to actual newline characters for PEM parsing
+            private_key = private_key.replace('\\n', '\n')
+        else:
+            # fallback to file for local development
+            private_key = open(settings.GITHUB_APP_PRIVATE_KEY_PATH).read()
+
         auth = Auth.AppAuth(
             app_id=int(settings.GITHUB_APP_ID),
-            private_key=open(settings.GITHUB_APP_PRIVATE_KEY_PATH).read()
+            private_key=private_key
         )
         from github import GithubIntegration
         gi = GithubIntegration(auth=auth)

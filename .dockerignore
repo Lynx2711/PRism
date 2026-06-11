@@ -1,0 +1,40 @@
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Git
+.git/
+.gitignore
+
+# Node
+node_modules/
+package-lock.json
+package.json
+
+# Frontend (built separately)
+prism-frontend/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# IDE / OS
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Misc
+*.pem
+.env
+.env.docker
+.env.example
+learnings.txt
+check_output.txt
+README.md

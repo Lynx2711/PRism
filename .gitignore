@@ -10,6 +10,7 @@ migrations/__pycache__/
 
 # Environment
 .env
+.env.docker
 .env.local
 .env.production
 env/
@@ -40,3 +41,4 @@ Thumbs.db
 # Project specific
 check_output.txt
 learnings.txt
+staticfiles/
